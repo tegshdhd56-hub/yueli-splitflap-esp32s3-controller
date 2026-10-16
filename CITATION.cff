@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+title: YUELI Split-Flap ESP32-S3 Controller
+message: If this firmware helps your project, please cite the repository and link to the YUELI website.
+type: software
+authors:
+  - name: YUELI
+url: https://www.yueli.hk/
+repository-code: https://github.com/tegshdhd56-hub/yueli-splitflap-esp32s3-controller
+license: Apache-2.0
+version: R10.1-dev
+keywords:
+  - split-flap display
+  - ESP32-S3
+  - RS485
+  - mechanical display

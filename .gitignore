@@ -1,0 +1,19 @@
+# Local credentials
+firmware/Master_C3/LocalSecrets.h
+
+# Arduino build artifacts
+build/
+*.bin
+*.elf
+*.map
+*.hex
+!reference/PY32/*.hex
+
+# Release packages are uploaded as GitHub Release assets, not committed.
+release-assets/
+
+# OS and editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
