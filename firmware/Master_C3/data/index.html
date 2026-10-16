@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="author" content="YUELI">
+  <meta name="description" content="Local controller for a YUELI mechanical split-flap display.">
+  <title>YUELI Split-Flap Controller</title>
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" type="text/css" href="style.css?v=r10-1-dev">
+  <link rel="stylesheet" type="text/css" href="carousel.css?v=r10-1-dev">
+</head>
+<body>
+  <div id="toast-container" aria-live="polite"></div>
+  <header class="topnav">
+    <div class="header-content">
+      <h1 class="brand-title"><img class="brand-logo" src="yueli-logo.png" width="863" height="187" alt="YUELI"></h1>
+      <p class="device-dimensions"><span class="sr-only">Units: </span><span id="labelUnits">23 × 6</span></p>
+      <nav class="bottom-nav" aria-label="Main navigation">
+        <a href="#" class="nav-item active" onclick="switchView('home'); return false;">Home</a>
+        <a href="#" class="nav-item" onclick="switchView('history'); return false;">History</a>
+      </nav>
+    </div>
+  </header>
+  <main class="content">
+    <div id="initialLoading" class="lds-facebook" role="status" aria-label="Loading settings"><div></div><div></div><div></div></div>
+    <div id="loadedContent" class="hidden">
+      <div id="bannerMessage" class="banner-message hidden" role="status"></div>
+      <div id="deviceStateNotice" class="device-state-notice hidden" role="status"></div>
+      <button type="button" id="confirmHomedButton" class="btn-secondary hidden">All units have stopped — continue</button>
+      <div id="view-home" class="view">
+        <form action="/" method="post" id="form">
+          <section class="editor-panel" aria-labelledby="message-heading">
+            <div class="editor-heading">
+              <h2 id="message-heading">Message</h2>
+              <div class="radio-group mode-group" aria-label="Display mode">
+                <input onchange="setDeviceModeTab(this.value)" type="radio" id="modeText" name="deviceMode" value="text">
+                <label for="modeText">Text</label>
+                <input onchange="setDeviceModeTab(this.value)" type="radio" id="modeCarousel" name="deviceMode" value="carousel">
+                <label for="modeCarousel">Carousel</label>
+                <input onchange="setDeviceModeTab(this.value)" type="radio" id="modeClock" name="deviceMode" value="clock" class="hidden">
+                <label for="modeClock" class="hidden">Clock</label>
+                <input onchange="setDeviceModeTab(this.value)" type="radio" id="modeDate" name="deviceMode" value="date" class="hidden">
+                <label for="modeDate" class="hidden">Date</label>
+                <input onchange="setDeviceModeTab(this.value)" type="radio" id="modeCountdown" name="deviceMode" value="countdown" class="hidden">
+                <label for="modeCountdown" class="hidden">Countdown</label>
+              </div>
+            </div>
+            <div id="tab-text" class="tab">
+              <div id="displayGrid" class="display-grid" role="group" aria-label="Display grid, 6 rows and 23 columns"></div>
+              <div class="editor-counts" aria-live="polite">
+                <span>Chars: <span id="labelCharacterCount">0</span></span>
+                <span>Lines: <span id="labelLineCount">0</span></span>
+              </div>
+              <input type="hidden" id="inputText" name="inputText" value="">
+              <div class="editor-tools">
+                <button type="button" class="btn-secondary" onclick="copyBoardText()">Copy board</button>
+                <button type="button" class="btn-secondary" onclick="pasteBoardText()">Paste / edit</button>
+                <p class="helper-text">Click a cell to type · Arrow keys to move · Ctrl/Cmd+C / V</p>
+              </div>
+              <div id="textEditPanel" class="text-edit-panel hidden">
+                <label for="messageEditor">Edit message</label>
+                <textarea id="messageEditor" rows="4" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-describedby="textEditStatus" oninput="updateTextEditStatus()"></textarea>
+                <label class="editor-layout-toggle" for="editorAutoLayout"><input type="checkbox" id="editorAutoLayout" checked onchange="updateTextEditStatus()"><span>Auto wrap &amp; center · Keep words together</span></label>
+                <p id="textEditStatus" role="status">Type or paste text, then apply. This replaces the entire board.</p>
+                <div class="text-edit-actions">
+                  <button type="button" class="btn-primary" onclick="applyTextEdits()">Apply to grid</button>
+                  <button type="button" class="btn-secondary" onclick="closeTextEditor()">Cancel</button>
+                </div>
+              </div>
+              <div id="virtualKeyboard" class="kb-container" role="group" aria-label="Display character keyboard"></div>
+              <label class="schedule-toggle hidden" for="inputCheckboxScheduleEnabled">
+                <input type="checkbox" id="inputCheckboxScheduleEnabled" disabled onchange="showHideScheduledMessageInput()">
+                <span>Schedule Message?</span>
+              </label>
+              <div id="divScheduleOptions" class="schedule-options hidden">
+                <label class="checkbox-label" for="inputCheckboxShowIndefinitely">
+                  <input type="checkbox" id="inputCheckboxShowIndefinitely" disabled>
+                  <span>Show Indefinitely?</span>
+                </label>
+                <input type="datetime-local" id="inputScheduledDateTime" disabled aria-label="Scheduled date and time">
+                <input type="hidden" id="inputHiddenScheduledDateTimeUnix" value="0">
+              </div>
+            </div>
+            <div id="tab-countdown" class="tab hidden">
+              <label for="inputCountdownDateTime">Countdown End Date</label>
+              <input type="date" id="inputCountdownDateTime" name="countdownDateTime">
+              <input type="hidden" id="inputHiddenCountdownDateTimeUnix" name="countdownDateTimeUnix" value="0">
+            </div>
+            <div id="tab-carousel" class="tab hidden">
+              <label for="rangeCarouselInterval">Carousel Interval</label>
+              <input type="range" oninput="updateCarouselInterval(this.value)" id="rangeCarouselInterval" min="1" max="60" step="1" value="5" class="slider">
+              <p class="state">Duration: <span id="labelCarouselInterval">5min</span></p>
+              <button type="button" id="carouselSaveInterval" class="btn-primary" onclick="saveCarouselSettingsOnly()">Save Duration</button>
+              <p class="helper-text">Manage the order in <b>Carousel Information</b>. To add messages, select them in <b>History</b> and click "Add Selected to Carousel".</p>
+            </div>
+            <div id="containerSubmit"><input id="messageSubmit" type="submit" value="Submit"></div>
+          </section>
+          <div class="hidden">
+            <input type="hidden" name="alignment" value="right">
+            <label for="rangeFlapSpeed">Flap Speed</label>
+            <input type="range" oninput="updateSpeedSlider(this)" id="rangeFlapSpeed" name="flapSpeed" min="1" max="100" step="1" value="80" class="slider">
+            <span id="rangeFlapSpeedValue">80 %</span>
+          </div>
+        </form>
+        <section id="actionsPanel" class="utility-panel" aria-labelledby="actions-heading">
+          <h2 id="actions-heading">Actions</h2>
+          <div class="actions">
+            <a id="linkActionOtaUpdate" href="/ota" onclick="return confirm('Are you sure you want to put device in OTA mode?')">OTA Update</a>
+            <a id="linkActionUnitCalibration" href="/reset-units" onclick="return confirm('Are you sure you want to Reset Units?')" class="hidden">Reset Unit Calibration</a>
+            <a id="linkActionResetWifi" href="/reset-wifi" onclick="return confirm('Are you sure you want to Reset WiFi settings?')">Reset WiFi</a>
+          </div>
+        </section>
+        <details class="network-panel" id="networkPanel">
+          <summary>Network Settings</summary>
+          <form id="wifiForm" class="network-content">
+            <p class="helper-text">Choose a nearby 2.4 GHz Wi-Fi network and enter its password.</p>
+            <div class="network-scan-row">
+              <p id="wifiScanStatus" role="status">Open Network Settings to find nearby Wi-Fi.</p>
+              <button type="button" class="btn-secondary" id="wifiScanButton">Refresh</button>
+            </div>
+            <div class="network-fields">
+              <div class="wifi-name-field">
+                <label for="wifiNetwork">Nearby Wi-Fi</label>
+                <select id="wifiNetwork" aria-describedby="wifiScanStatus"><option value="">Finding nearby Wi-Fi…</option></select>
+                <div id="wifiManualField" class="hidden"><label for="inputWifiSsid">Wi-Fi name</label><input type="text" id="inputWifiSsid" maxlength="32" autocomplete="off" placeholder="Hidden network name"></div>
+              </div>
+              <div><label for="inputWifiPass">Password</label><input type="password" id="inputWifiPass" maxlength="64" autocomplete="new-password" placeholder="Wi-Fi password"><label class="wifi-password-toggle"><input type="checkbox" id="wifiShowPassword"><span>Show password</span></label></div>
+            </div>
+            <div class="wifi-ip-summary" aria-live="polite"><span>Current Wi-Fi IP</span><code id="wifiCurrentIp">—</code><span id="wifiCurrentSsid">Not connected</span></div>
+            <div class="network-connect-row"><button type="submit" class="btn-primary" id="wifiConnectButton">Connect</button><p id="wifiConnectionStatus" role="status" aria-live="polite">Not connected.</p></div>
+          </form>
+        </details>
+        <details id="carouselPanel" class="network-panel carousel-panel" aria-labelledby="carousel-heading">
+          <summary><span id="carousel-heading">Carousel Information (<span id="carouselCount">—</span>)</span></summary>
+          <div class="carousel-content">
+            <div class="carousel-toolbar"><button type="button" id="carouselRefresh" class="btn-secondary">Refresh</button><button type="button" class="btn-secondary" onclick="switchView('history')">Add from History</button></div>
+            <p class="helper-text">Drag a handle or use the arrows to reorder. Select new messages in History.</p>
+            <p id="carouselStatus" class="carousel-status" role="status" aria-live="polite">Loading carousel…</p>
+            <ol id="carouselList" class="carousel-list" aria-label="Carousel playback order"></ol>
+          </div>
+        </details>
+        <details class="network-panel admin-panel" id="adminPanel">
+          <summary>Developer</summary>
+          <div class="admin-content">
+            <p class="helper-text" id="developerIntro">For developers only. Sign in to access unit calibration.</p>
+            <form id="adminLoginForm" class="admin-login-form">
+              <div><label for="adminPassword">Developer password</label><input id="adminPassword" type="password" autocomplete="current-password" required></div>
+              <button type="submit" class="btn-primary" id="adminLoginButton">Unlock</button>
+            </form>
+            <p id="adminNotice" class="admin-notice" role="status" aria-live="polite">Developer access is required for calibration.</p>
+            <div id="adminControls" class="hidden" lang="zh-CN">
+              <div class="admin-session-bar"><span>管理员已解锁 · 15 分钟无操作后自动退出</span><button type="button" id="adminLogoutButton" class="btn-secondary">退出管理员</button></div>
+              <button type="button" id="calibrationConfirmStopped" class="btn-primary hidden">我已确认单元停稳，继续校准</button>
+              <section class="calibration-values" aria-labelledby="calibration-values-heading">
+                <div class="admin-session-bar"><h3 id="calibration-values-heading">当前单元校准记录</h3><button type="button" id="calibrationRefreshValues" class="btn-secondary">读取当前偏移</button></div>
+                <p id="calibrationValueAddress">单元地址 — · 页码 —</p>
+                <dl><div><dt>当前传感器角度</dt><dd id="calibrationCurrentAngle">—</dd></div><div><dt>本页已保存的角度</dt><dd id="calibrationPageAngle">—</dd></div><div><dt>全局偏移 · OFGET 回读</dt><dd id="calibrationReportedOffset">—</dd></div></dl>
+                <p id="calibrationOffsetSource" class="helper-text">尚无有效 OFGET 应答。</p>
+                <p id="calibrationValueStatus" role="status">等待读取当前单元的全局偏移。</p>
+                <p class="helper-text">全局偏移作用于本单元所有页，不是当前传感器角度或本页校准值。OFGET 仅回读运行时偏移，不能确认 LEARN 保存或 Flash 掉电保存成功。</p>
+                <button type="button" id="calibrationUseOffset" class="btn-secondary" disabled>使用回读偏移</button>
+              </section>
+              <fieldset id="calibrationFields" disabled>
+                <legend class="sr-only">单元校准控制</legend>
+                <div class="admin-fields">
+                  <div><label for="calibrationDip">单元 DIP 地址</label><input id="calibrationDip" type="number" min="0" max="255" step="1" value="1"><p class="helper-text">实际拨码地址 0–255，不是行列号。</p></div>
+                  <div><label for="calibrationPage">目标页</label><select id="calibrationPage"></select><p class="helper-text">共 64 页，第 0 页为空白。</p></div>
+                </div>
+                <div class="admin-button-row"><button type="button" class="btn-primary" id="calibrationGoto">定位到选中页</button><button type="button" class="btn-secondary" id="calibrationBlank">回到空白页 0</button></div>
+                <div class="admin-fine-row"><div><label for="calibrationSteps">微调步数</label><input type="number" id="calibrationSteps" min="1" max="200" step="1" value="5"></div><button type="button" class="btn-secondary" id="calibrationMinus">− 微调</button><button type="button" class="btn-secondary" id="calibrationPlus">+ 微调</button></div>
+                <div class="admin-button-row"><button type="button" class="btn-primary" id="calibrationLearn">保存当前角度到选中页</button></div>
+                <p class="helper-text">先定位，再观察并微调，最后保存。保存后再次定位到该页验证。此版单元固件不返回动作或保存完成回执，页面只能确认指令已发送。</p>
+                <details class="admin-advanced"><summary>高级设置</summary>
+                  <label for="calibrationOffset">全局偏移（毫度）</label><input id="calibrationOffset" type="number" min="-360000" max="360000" step="1" value="0">
+                  <p class="helper-text">范围 −360000 至 360000 毫度，1000 毫度 = 1°。回读不会覆盖此输入；可点击“使用回读偏移”填入。设置后等待回读核对，并再次定位观察验证。</p>
+                  <div class="admin-button-row"><button type="button" class="btn-secondary" id="calibrationSetOffset">保存全局偏移</button><button type="button" class="btn-secondary btn-danger" id="calibrationClear">清除本单元校准表</button></div>
+                </details>
+              </fieldset>
+              <div class="admin-diagnostics"><span>最近指令</span><code id="adminLastCommand">尚未发送</code><label for="adminRxLog">总线接收记录</label><pre id="adminRxLog" aria-live="off">暂无接收数据</pre></div>
+            </div>
+          </div>
+        </details>
+      </div>
+      <div id="view-history" class="view hidden">
+        <div class="history-heading"><h2>History</h2><button type="button" id="historyAddCarousel" class="btn-primary" onclick="setCarouselFromHistory()">Add Selected to Carousel</button></div>
+        <div id="history-list" class="card-list"></div>
+      </div>
+      <footer class="device-meta">
+        <span>Version: <span id="labelVersion">N/A</span></span>
+        <span>Last Received: <span id="labelLastMessageReceived">N/A</span></span>
+        <a href="https://www.yueli.hk/" target="_blank" rel="noopener noreferrer external">Official website: yueli.hk</a>
+      </footer>
+    </div>
+  </main>
+  <script src="script.js?v=r10-1-dev"></script>
+  <script src="carousel.js?v=r10-1-dev"></script>
+  <script src="wifi.js?v=r10-1-dev"></script>
+  <script src="admin.js?v=r10-1-dev"></script>
+</body>
+</html>

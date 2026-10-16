@@ -1,0 +1,22 @@
+.carousel-content{min-width:0;padding:0 24px 24px}
+.carousel-toolbar,.carousel-item-heading,.carousel-item-actions{display:flex;align-items:center;gap:10px}
+.carousel-toolbar{justify-content:flex-end;flex-wrap:wrap;margin-bottom:14px}
+.carousel-content>.helper-text{margin:0}
+.carousel-status{margin:14px 0;color:var(--muted,#687386);font-size:13px;line-height:1.6}
+.carousel-status.is-error{color:#b3261e}
+.carousel-list{padding:0;margin:0;list-style:none;display:grid;gap:12px}
+.carousel-empty{padding:20px 0;margin:0;color:var(--muted,#687386);font-size:14px}
+.carousel-item{min-width:0;padding:14px;border:1px solid #dce1e9;border-radius:14px;background:#fff;box-shadow:0 2px 5px #18243506}
+.carousel-item.is-dragging{border-color:#007aff;box-shadow:0 0 0 3px #007aff20;opacity:.8}
+.carousel-item-heading{margin-bottom:12px;min-width:0}
+.carousel-number{font-size:13px;font-weight:600;flex:1;min-width:0}
+.carousel-playing{display:inline-block;margin-left:8px;padding:3px 7px;border-radius:20px;background:#e4f3e9;color:#21703d;font-size:11px;font-weight:600}
+.carousel-item-actions{gap:6px}
+.carousel-action{min-width:40px;min-height:40px;padding:8px 10px;font-size:14px}
+.carousel-drag-handle{touch-action:none;cursor:grab;user-select:none;font-size:26px;line-height:1;width:40px;flex:0 0 40px;padding:5px;color:#687386}
+.carousel-drag-handle:active{cursor:grabbing}
+.carousel-preview{margin:0;padding:14px;border-radius:8px;background:#f5f6f8;color:#283140;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:clamp(13px,2.4vw,15px);line-height:1.6;white-space:pre;overflow-x:auto;tab-size:2}
+.carousel-list button:disabled{opacity:.4;cursor:default}
+@media(max-width:420px){.carousel-item{padding:10px}.carousel-item-heading{gap:5px}.carousel-number{font-size:12px}.carousel-item-actions{gap:4px}.carousel-action{min-width:36px;padding:7px 8px}.carousel-drag-handle{width:32px;flex-basis:32px}.carousel-preview{padding:10px 6px}}
+@media(max-width:640px){.carousel-content{padding:0 18px 18px}}
+@media(max-width:380px){.carousel-content{padding-inline:16px}}
